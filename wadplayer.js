@@ -651,7 +651,8 @@ function cmdGame(autostart, episode, map, skill) {
         if (wantMusic) {
             try {
                 const taudMod = require("taud")
-                IS.I_InitMusic(taudMod, DIR, iwadBaseName())
+                const lfsMod = require("lfs")
+                IS.I_InitMusic(taudMod, lfsMod, DIR, iwadBaseName())
                 S.S_SetMusicVolume(M.getMusicVolume())
             } catch (e) {
                 printerr("doom: music disabled (" + e.message + ")")

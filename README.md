@@ -116,10 +116,13 @@ Unknown keys, actions or options are skipped with a warning rather than aborting
 ## Sound & music
 
 The port uses two audio playheads: one for music, one for an 8-channel software
-SFX mixer. Music tracks are read from `M_<SONG>.taud` files next to `wadplayer.js`
-using the original MUS lump names (`M_INTRO.taud`, `M_E1M1.taud`, `M_INTER.taud`,
-`M_VICTOR.taud`, `M_BUNNY.taud`, …). A missing track is skipped silently. In the
-distributed package the tracks are bundled as `{WADNAME}--MUSPACK.lfs`.
+SFX mixer. Music ships as a single `{WADNAME}-MUSPACK.lfs` pack next to
+`wadplayer.js` (for the shareware IWAD `DOOM-SHAREWARE.WAD`, the pack name is
+shortened to `DOOM-MUSPACK.lfs`). The pack is unpacked at startup: a shared
+`SOUNDFONT.tsii` sample+instrument bank is loaded once, then each track is
+pulled out on demand as an `M_<SONG>.tpif` pattern file using the original MUS
+lump names (`M_INTRO`, `M_E1M1`, `M_INTER`, `M_VICTOR`, `M_BUNNY`, …). A missing
+pack — or a missing track within it — is skipped silently.
 
 ## Save games
 

@@ -3,10 +3,12 @@
 // Part of tsvm-doom, a derivative of linuxdoom-1.10 (C) id Software.
 // Licensed under GPL-2.0-only; see COPYING.
 //
-// Two playheads: tracker music (taud files named <IWAD>-<SONG>.taud next
-// to the app, silently skipped when absent) and PCM sound effects (8
-// software-mixed channels; mono 11025 Hz DMX lumps resampled on the fly
-// to 32 kHz stereo PCMu8, pumped with the tvnes queue pattern).
+// Two playheads: tracker music (loaded from the <WADNAME>-MUSPACK.lfs pack
+// next to the app -- a shared SOUNDFONT.tsii sample+instrument bank plus one
+// M_<SONG>.tpif pattern file per track; silently skipped when the pack is
+// absent) and PCM sound effects (8 software-mixed channels; mono 11025 Hz DMX
+// lumps resampled on the fly to 32 kHz stereo PCMu8, pumped with the tvnes
+// queue pattern).
 
 // injectIntChk sink -- keep first of each loop kind throwaway
 while (false) {} for (;false;) {} do {} while (false);
@@ -209,24 +211,39 @@ function I_UpdateSound() {
 
 // ---- music (taud tracker on its own playhead) ----
 
-let taud = null                     // bound by doom.js (require("taud"))
-let musicDir = ""
-let iwadBase = "DOOM"
+let taud = null                     // bound by wadplayer.js (require("taud"))
+let lfs = null                      // bound by wadplayer.js (require("lfs"))
+let musicDir = ""                   // temp dir the music pack was unpacked into
+let musicReady = false              // true once SOUNDFONT.tsii is resident
 let currentSong = null
 let musicLooping = false
 let masterMusVol = 8
 
-function I_InitMusic(taudModule, dir, base) {
+// Unpack <base>-MUSPACK.lfs (next to the app) into a temp dir and load its
+// shared SOUNDFONT.tsii sample+instrument bank. Individual tracks are pulled
+// out lazily by I_PlaySong as M_<SONG>.tpif pattern files. A missing pack just
+// leaves musicReady false (silent, by design); a corrupt pack throws and the
+// caller logs "music disabled".
+function I_InitMusic(taudModule, lfsModule, dir, base) {
     taud = taudModule
-    musicDir = dir
-    iwadBase = base
+    lfs = lfsModule
+
+    const packPath = dir + "\\" + base + "-MUSPACK.lfs"
+    if (!files.open(packPath).exists) return     // no music pack: silence
+
+    musicDir = lfs.extractAll(packPath).fullPath
+
+    const sfPath = musicDir + "\\SOUNDFONT.tsii"
+    if (!files.open(sfPath).exists) return
+    taud.uploadTaudFile(sfPath, 0, musicHead)    // .tsii: bank only
+    musicReady = true
 }
 
-// original MUS-style lump naming: M_E1M1.taud, M_INTER.taud, M_INTRO.taud
-// (taud packs will ship as <WADNAME>--MUSPACK.lfs later; the per-WAD
-// distinction lives in the archive, not the filename)
+// original MUS-style lump naming: tracks live in the pack as M_E1M1.tpif,
+// M_INTER.tpif, M_INTRO.tpif, ... (patterns only; they reuse the resident
+// SOUNDFONT.tsii bank loaded at init)
 function songPath(name) {
-    return musicDir + "\\M_" + name.toUpperCase() + ".taud"
+    return musicDir + "\\M_" + name.toUpperCase() + ".tpif"
 }
 
 function playTaud(path) {
@@ -240,7 +257,7 @@ function playTaud(path) {
 
 // name: e.g. "e1m1", "inter", "victor", "bunny", "intro"
 function I_PlaySong(name, looping) {
-    if (!inited || taud === null || name === null) return
+    if (!inited || taud === null || !musicReady || name === null) return
     const path = songPath(name)
     const fd = files.open(path)
     if (!fd.exists) {

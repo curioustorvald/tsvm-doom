@@ -1,4 +1,4 @@
-This project is a derivative work of DOOM source code released by Id Software.
+This project is a derivative work of LinuxDoom source code released by Id Software.
 
 Copyright (C) 2026 CuriousTorvald
 
@@ -13,11 +13,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
----
-
-The DOOM MUSPACK contains samples from SGM Pro v15 soundfont.
-(C) Copyright 2026 David Shan <shanpcaudio@outlook.com>
 
 ---
 
