@@ -1,0 +1,99 @@
+{
+  "tsfVersion": "1.0",
+  "name": "wadplayer",
+  "summary": "Run a DOOM IWAD on TSVM -- a faithful port of id Software's linuxdoom-1.10",
+  "description": "Takes a vanilla DOOM IWAD filename (resolved next to the program) as its first argument and runs the classic software-rendered game: attract loop, menus, save/load, cheats, automap, intermission, finale, sound and music. The `doom` and `doom1` aliases supply DOOM-SHAREWARE.WAD and DOOM.WAD respectively. With no further arguments it shows the title/demo attract loop; start a game from the menu or jump straight in with `play` or `-warp`. Music is read from M_<SONG>.taud files beside the program (skipped silently if absent); sound effects mix on a second audio playhead. Controls and options are read from A:\\home\\config\\doomrc and rewritten on exit. PWADs load over the IWAD with `-file`; UDMF-format maps are rejected gracefully.",
+  "symbols": {
+    "iwad":     { "kind": "positional", "type": "file", "name": "IWAD",     "summary": "IWAD filename (DOOM.WAD / DOOM-SHAREWARE.WAD); resolved next to the program or as an absolute path" },
+    "play":     { "kind": "subcommand", "name": "play",     "summary": "Start a level directly (episode, map, skill all optional)" },
+    "demo":     { "kind": "subcommand", "name": "demo",     "summary": "Play back a recorded demo lump at normal speed" },
+    "timedemo": { "kind": "subcommand", "name": "timedemo", "summary": "Render a demo as fast as possible and report the frame rate" },
+    "bench":    { "kind": "subcommand", "name": "bench",    "summary": "Run platform benchmarks (WAD load, blit, upscale)" },
+    "keys":     { "kind": "subcommand", "name": "keys",     "summary": "Echo raw keyboard codes (for doomrc keymap setup)" },
+    "title":    { "kind": "subcommand", "name": "title",    "summary": "Show TITLEPIC until a key is pressed" },
+    "map":      { "kind": "subcommand", "name": "map",      "summary": "Automap free-camera viewer for a level" },
+    "view":     { "kind": "subcommand", "name": "view",     "summary": "Noclip fly-through of a level (rendering smoke test)" },
+
+    "warp":     { "kind": "option", "long": "-warp",    "summary": "Start the given episode and map at skill 2" },
+    "file":     { "kind": "option", "long": "-file",    "summary": "Load a vanilla PWAD over the IWAD",
+                  "value": { "name": "PWAD", "type": "file", "required": true, "summary": "PWAD file beside the program or an absolute path" } },
+    "nosound":  { "kind": "option", "long": "-nosound", "summary": "Disable all sound (SFX and music)" },
+    "nomusic":  { "kind": "option", "long": "-nomusic", "summary": "Disable music only" },
+
+    "episode":  { "kind": "positional", "type": "int", "name": "EPISODE", "summary": "Episode number 1..3 (registered) / 1 (shareware)" },
+    "mapnum":   { "kind": "positional", "type": "int", "name": "MAP",     "summary": "Map number within the episode, 1..9" },
+    "skill":    { "kind": "positional", "type": "int", "name": "SKILL",   "summary": "Skill 1..5 (1=I'm Too Young To Die .. 5=Nightmare)" },
+    "demolump": { "kind": "positional", "type": "string", "name": "DEMO", "summary": "Demo lump name, e.g. DEMO1, DEMO2, DEMO3" },
+
+    "globals": {
+      "kind": "group",
+      "summary": "Global flags (combine with any mode)",
+      "members": ["file", "nosound", "nomusic"]
+    }
+  },
+  "synopsis": {
+    "type": "sequence",
+    "children": [
+      { "type": "reference", "symbol": "iwad" },
+      {
+        "type": "optional",
+        "child": {
+          "type": "choice",
+          "children": [
+            {
+              "type": "sequence",
+              "children": [
+                { "type": "reference", "symbol": "play" },
+                { "type": "optional", "child": { "type": "reference", "symbol": "episode" } },
+                { "type": "optional", "child": { "type": "reference", "symbol": "mapnum" } },
+                { "type": "optional", "child": { "type": "reference", "symbol": "skill" } }
+              ]
+            },
+            {
+              "type": "sequence",
+              "children": [
+                { "type": "reference", "symbol": "warp" },
+                { "type": "reference", "symbol": "episode" },
+                { "type": "reference", "symbol": "mapnum" }
+              ]
+            },
+            {
+              "type": "sequence",
+              "children": [
+                { "type": "reference", "symbol": "demo" },
+                { "type": "optional", "child": { "type": "reference", "symbol": "demolump" } }
+              ]
+            },
+            {
+              "type": "sequence",
+              "children": [
+                { "type": "reference", "symbol": "timedemo" },
+                { "type": "optional", "child": { "type": "reference", "symbol": "demolump" } }
+              ]
+            },
+            { "type": "reference", "symbol": "bench" },
+            { "type": "reference", "symbol": "keys" },
+            { "type": "reference", "symbol": "title" },
+            {
+              "type": "sequence",
+              "children": [
+                { "type": "reference", "symbol": "map" },
+                { "type": "optional", "child": { "type": "reference", "symbol": "episode" } },
+                { "type": "optional", "child": { "type": "reference", "symbol": "mapnum" } }
+              ]
+            },
+            {
+              "type": "sequence",
+              "children": [
+                { "type": "reference", "symbol": "view" },
+                { "type": "optional", "child": { "type": "reference", "symbol": "episode" } },
+                { "type": "optional", "child": { "type": "reference", "symbol": "mapnum" } }
+              ]
+            }
+          ]
+        }
+      },
+      { "type": "repeat", "child": { "type": "reference", "symbol": "globals" } }
+    ]
+  }
+}
