@@ -781,7 +781,7 @@ function cmdGame(autostart, episode, map, skill) {
             const fy = (y & 63) << 6
             for (let x = 0; x < _G.DOOM.SCREENWIDTH; x++) {
                 if (inViewY && x >= wx && x < wx + vw) { x = wx + vw - 1; continue }
-                screen[y * _G.DOOM.SCREENHEIGHT + x] = borderFlat[fy + (x & 63)]
+                screen[y * _G.DOOM.SCREENWIDTH + x] = borderFlat[fy + (x & 63)]
             }
         }
     }
