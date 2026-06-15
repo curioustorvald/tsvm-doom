@@ -215,13 +215,20 @@ function M_LoadSelect(ch) {
     }
 }
 
+function defaultSaveName() {
+    return "E" + G.state.gameepisode + "M" + G.state.gamemap
+}
+
 function M_SaveSelect(ch) {
-    // begin typing the slot description (vanilla behaviour)
+    // begin typing the slot description. Pre-fill empty slots with the level
+    // name so (a) it's visibly clear you're entering a name and (b) pressing
+    // Enter without typing still saves (vanilla refuses an empty description,
+    // which reads as "selecting a slot does nothing").
     saveStringEnter = true
     saveSlot = ch
     saveOldString = saveSlotNames[ch]
     if (saveSlotNames[ch] === "" || saveSlotNames[ch] === "empty slot")
-        saveSlotNames[ch] = ""
+        saveSlotNames[ch] = defaultSaveName()
 }
 
 function M_DoSave() {
@@ -449,8 +456,12 @@ function M_DrawSave() {
     V.V_DrawPatch(72, 28, 0, W.W_CacheLumpName("M_SAVEG"))
     for (let i = 0; i < 6; i++) {
         M_DrawSaveLoadBorder(SaveDef.x, SaveDef.y + LINEHEIGHT * i)
-        HU.HU_DrawText(SaveDef.x, SaveDef.y + LINEHEIGHT * i,
-            saveSlotNames[i] || "empty slot")
+        // the slot being edited shows its literal text (so the cursor is not
+        // hidden behind the "empty slot" placeholder)
+        const text = (saveStringEnter && i === saveSlot)
+            ? saveSlotNames[i]
+            : (saveSlotNames[i] || "empty slot")
+        HU.HU_DrawText(SaveDef.x, SaveDef.y + LINEHEIGHT * i, text)
     }
     if (saveStringEnter) {
         // typing cursor

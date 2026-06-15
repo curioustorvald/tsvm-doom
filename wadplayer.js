@@ -594,11 +594,15 @@ function cmdGame(autostart, episode, map, skill) {
     }
 
     function doSaveGame(slot, desc) {
-        const bytes = D.p_saveg.P_SaveGameToBuffer(desc)
-        const fd = files.open(savePath(slot))
-        fd.swrite(bytesToLatin1(bytes))
-        player0().message = "game saved."
-        quickSaveSlot = slot
+        try {
+            const bytes = D.p_saveg.P_SaveGameToBuffer(desc)
+            files.open(savePath(slot)).swrite(bytesToLatin1(bytes))
+            player0().message = "game saved."
+            quickSaveSlot = slot
+        } catch (e) {
+            player0().message = "save failed: " + e.message
+            printerr("doom: save to " + savePath(slot) + " failed: " + e.message)
+        }
     }
 
     function doLoadGame(slot) {
