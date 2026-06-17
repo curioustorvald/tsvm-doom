@@ -373,8 +373,9 @@ function R_DrawPSprite(psp) {
     const pspriteiscale = RM.getPspriteiscale()
     const viewwidth = RM.getViewwidth()
 
-    // horizontal placement
-    let tx = (psp.sx - 160 * FRACUNIT) | 0
+    // horizontal placement (aimPspriteOffset, set by g_game, slides the weapon
+    // under the mouse cursor for free aim; 0 for kbd play / demos / tests)
+    let tx = (psp.sx - 160 * FRACUNIT + (player.aimPspriteOffset | 0)) | 0
     tx = (tx - spriteoffset[lump]) | 0
     const x1 = (RM.getCenterxfrac() + T.FixedMul(tx, pspritescale)) >> 16
     if (x1 > viewwidth) return

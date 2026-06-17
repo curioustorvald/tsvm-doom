@@ -553,19 +553,21 @@ function P_SpawnMissile(source, dest, type) {
     return th
 }
 
-function P_SpawnPlayerMissile(source, type) {
-    // aim at a nearby monster
-    let an = source.angle >>> 0
+function P_SpawnPlayerMissile(source, type, aimAngle) {
+    // aim at a nearby monster, searching around the requested direction
+    // (defaults to source.angle for demos / kbd; p_pspr passes the free aim)
+    const base = (aimAngle === undefined ? source.angle : aimAngle) >>> 0
+    let an = base
     let slope = PMap.P_AimLineAttack(source, an, 16 * 64 * FRACUNIT)
     if (!PMap.getLinetarget()) {
-        an = (an + (1 << 26)) >>> 0
+        an = (base + (1 << 26)) >>> 0
         slope = PMap.P_AimLineAttack(source, an, 16 * 64 * FRACUNIT)
         if (!PMap.getLinetarget()) {
-            an = (an - (2 << 26)) >>> 0
+            an = (base - (1 << 26)) >>> 0
             slope = PMap.P_AimLineAttack(source, an, 16 * 64 * FRACUNIT)
         }
         if (!PMap.getLinetarget()) {
-            an = source.angle >>> 0
+            an = base
             slope = 0
         }
     }

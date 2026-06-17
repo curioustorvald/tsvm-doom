@@ -51,6 +51,20 @@ const sidemove = [0x18, 0x28]
 const angleturn = [640, 1280, 320]      // [2] = slow turn
 const SLOWTURNTICS = 6
 const NUMKEYS = 256
+const FRACUNIT = 65536
+const SCREENWIDTH = _G.DOOM.SCREENWIDTH
+
+// live mouse input, written by i_input every poll. Absolute cursor fraction
+// (0..1 across the screen), button bits, and an `active` gate; the whole
+// mouse path is skipped when inactive (demos, tests, kbd-only). See the
+// _G.DOOM.MOUSE tunables published by wadplayer.js.
+const mouseInput = { fracX: 0.5, left: 0, right: 0, active: false }
+function setMouseInput(fracX, left, right, active) {
+    mouseInput.fracX = fracX
+    mouseInput.left = left
+    mouseInput.right = right
+    mouseInput.active = !!active
+}
 
 // keyboard state, indexed by raw libGDX keycode (filled by i_input)
 const gamekeydown = new Uint8Array(NUMKEYS)
@@ -119,6 +133,8 @@ function G_BuildTiccmd(cmd) {
         }
     }
 
+    G_ApplyMouse(cmd)
+
     const MAXPLMOVE = forwardmove[1]
     if (forward > MAXPLMOVE) forward = MAXPLMOVE
     else if (forward < -MAXPLMOVE) forward = -MAXPLMOVE
@@ -127,6 +143,60 @@ function G_BuildTiccmd(cmd) {
 
     cmd.forwardmove += forward
     cmd.sidemove += side
+}
+
+// Mouse steering + free aim (TSVM extension). Splits the screen into a centre
+// dead-zone 'a' (no turn, free aim only) and left/right wings 'b' (turn, speed
+// ramping from ~0 at the inner edge to MAXTURNSPEED at the screen edge). The
+// weapon and the bullets follow the cursor across the WHOLE screen, so aiming
+// works in both zones. Tunables live under _G.DOOM.MOUSE. A no-op for kbd-only
+// play, demos and the headless tests (mouseInput.active stays false there).
+function G_ApplyMouse(cmd) {
+    const M = (typeof _G !== "undefined" && _G.DOOM) ? _G.DOOM.MOUSE : null
+    if (!M || M.ENABLE === false || !mouseInput.active) return
+
+    const player = state.players[state.consoleplayer]
+    if (!player || !player.mo) return
+
+    const fx = mouseInput.fracX             // 0..1 across the screen
+    const d = fx - 0.5                      // signed offset from the centre
+
+    // 'a' dead-zone reaches +/- half; each wing 'b' is the remainder
+    const centreFrac = (M.CENTREWIDTH !== undefined) ? M.CENTREWIDTH : 0.5
+    const half = centreFrac * 0.5
+    const wing = 0.5 - half
+
+    // wing -> camera turn. angleturn sign matches the keyboard (left = +).
+    if (wing > 0 && (d > half || d < -half)) {
+        const maxturn = (M.MAXTURNSPEED !== undefined) ? M.MAXTURNSPEED : 1600
+        const gamma = (M.TURNGAMMA !== undefined) ? M.TURNGAMMA : 1.0
+        if (d > half) {                     // right wing
+            let t = (d - half) / wing
+            if (t > 1) t = 1
+            cmd.angleturn = (cmd.angleturn - maxturn * Math.pow(t, gamma)) | 0
+        } else {                            // left wing
+            let t = (-d - half) / wing
+            if (t > 1) t = 1
+            cmd.angleturn = (cmd.angleturn + maxturn * Math.pow(t, gamma)) | 0
+        }
+    }
+
+    // free aim: map the cursor column to a view angle (xtoviewangle, exact for
+    // the firing direction) and to a weapon x-offset (160-based, like the
+    // psprite renderer). Read back by p_pspr (bullets) and r_things (hand).
+    const vw = RM.getViewwidth()
+    let ixv = Math.round(fx * vw)
+    if (ixv < 0) ixv = 0; else if (ixv > vw) ixv = vw
+    player.aimAngleOffset = RM.xtoviewangle[ixv] | 0
+
+    const follow = (M.HANDFOLLOW !== undefined) ? M.HANDFOLLOW : 1.0
+    let ixs = Math.round(fx * SCREENWIDTH)
+    if (ixs < 0) ixs = 0; else if (ixs > SCREENWIDTH) ixs = SCREENWIDTH
+    player.aimPspriteOffset = ((ixs - (SCREENWIDTH >> 1)) * FRACUNIT * follow) | 0
+
+    // natural mouse buttons: left fires, right uses
+    if (mouseInput.left) cmd.buttons |= DD.BT.ATTACK
+    if (mouseInput.right) cmd.buttons |= DD.BT.USE
 }
 
 // ---- player reborn (g_game.c G_PlayerReborn) ----
@@ -561,6 +631,7 @@ exports = {
     G_Ticker, G_WorldDone, G_DoCompleted,
     G_SaveGame, G_LoadGame,
     G_DoPlayDemo, G_DemoTic, G_DemoEnded, G_ReadDemoTiccmd,
+    setMouseInput,
     getGameaction: () => gameaction,
     setGameaction: (a) => { gameaction = a },
     setRespawnparm: (b) => { respawnparm = b },

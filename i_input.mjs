@@ -11,9 +11,17 @@
 while (false) {} for (;false;) {} do {} while (false);
 
 let G = null, DD = null
+let FB_W = 560                  // physical display width in px (set at init)
 
 const held = new Uint8Array(8)
 const prevHeld = new Uint8Array(8)
+
+// mouse: absolute cursor position (the VM has no pointer capture, so this is
+// positional steering, not relative deltas). `mouseEngaged` stays false until
+// the cursor actually moves, so a pointer resting in a wing at boot doesn't
+// spin the view before the player has touched the mouse.
+let mouseEngaged = false
+let prevMouseRawX = -1
 
 // libGDX raw code -> doom key (vanilla doomdef.h codes; ascii lowercase
 // for printables). Index = raw code.
@@ -94,6 +102,22 @@ function I_PollKeys() {
         if (!still && rawToDoom[k] !== 0)
             evqueue.push({ type: DD.Ev.keyup, data1: rawToDoom[k] })
     }
+
+    // ---- mouse (captured by the same -40 latch poked above) ----
+    // MMIO 32/33 = mouseX (LE), 36 = buttons; sys addr = -(mmio+1). The value
+    // is in logical framebuffer pixels (0..FB_W-1), one frame stale like keys.
+    if (active) {
+        const rawX = (sys.peek(-33) & 0xFF) | ((sys.peek(-34) & 0xFF) << 8)
+        const btn = sys.peek(-37) & 0xFF
+        if (prevMouseRawX >= 0 && rawX !== prevMouseRawX) mouseEngaged = true
+        prevMouseRawX = rawX
+        let fracX = FB_W > 0 ? rawX / FB_W : 0.5
+        if (fracX < 0) fracX = 0
+        else if (fracX > 1) fracX = 1
+        G.setMouseInput(fracX, btn & 1, btn & 2, mouseEngaged)
+    } else {
+        G.setMouseInput(0.5, 0, 0, false)
+    }
 }
 
 function I_NextEvent() {
@@ -104,11 +128,17 @@ function I_ClearEvents() {
     evqueue.length = 0
     held.fill(0)
     prevHeld.fill(0)
+    mouseEngaged = false
+    prevMouseRawX = -1
 }
 
 function I_AnyKeyDown(code) { return G.gamekeydown[code] !== 0 }
 
 exports = {
     I_PollKeys, I_NextEvent, I_ClearEvents, I_AnyKeyDown,
-    init: function (D) { G = D.g_game; DD = D.defs },
+    init: function (D) {
+        G = D.g_game; DD = D.defs
+        try { FB_W = graphics.getPixelDimension()[0] | 0 } catch (e) { FB_W = 560 }
+        if (!FB_W) FB_W = 560
+    },
 }

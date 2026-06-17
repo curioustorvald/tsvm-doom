@@ -27,6 +27,13 @@ const NUMPSPRITES = 2
 function P_Random() { return R.P_Random() }
 function FixedMul(a, b) { return T.FixedMul(a, b) }
 
+// Free-aim base angle: the player's facing plus the mouse free-aim offset
+// (g_game sets player.aimAngleOffset). 0 for keyboard play, demos and tests,
+// so the firing angle is then bit-identical to player.mo.angle.
+function P_PlayerAimAngle(player) {
+    return (player.mo.angle + (player.aimAngleOffset | 0)) >>> 0
+}
+
 // (player, psp) action dispatch, indexed like p_mobj's actionTable
 const psprActionTable = new Array(74).fill(undefined)
 
@@ -226,7 +233,7 @@ function A_Punch(player, psp) {
     let damage = (P_Random() % 10 + 1) << 1
     if (player.powers[DD.Power.strength]) damage *= 10
 
-    let angle = player.mo.angle
+    let angle = P_PlayerAimAngle(player)
     angle = (angle + ((P_Random() - P_Random()) << 18)) | 0
     const slope = PMap.P_AimLineAttack(player.mo, angle >>> 0, DD.MELEERANGE)
     PMap.P_LineAttack(player.mo, angle >>> 0, DD.MELEERANGE, slope, damage)
@@ -242,7 +249,7 @@ function A_Punch(player, psp) {
 
 function A_Saw(player, psp) {
     const damage = 2 * (P_Random() % 10 + 1)
-    let angle = player.mo.angle
+    let angle = P_PlayerAimAngle(player)
     angle = (angle + ((P_Random() - P_Random()) << 18)) | 0
 
     // meleerange+1 so the puff doesn't skip the flash
@@ -278,39 +285,42 @@ function A_Saw(player, psp) {
 
 function A_FireMissile(player, psp) {
     player.ammo[weaponinfo[player.readyweapon].ammo]--
-    PM.P_SpawnPlayerMissile(player.mo, I.MT.MT_ROCKET)
+    PM.P_SpawnPlayerMissile(player.mo, I.MT.MT_ROCKET, P_PlayerAimAngle(player))
 }
 
 function A_FireBFG(player, psp) {
     player.ammo[weaponinfo[player.readyweapon].ammo] -= BFGCELLS
-    PM.P_SpawnPlayerMissile(player.mo, I.MT.MT_BFG)
+    PM.P_SpawnPlayerMissile(player.mo, I.MT.MT_BFG, P_PlayerAimAngle(player))
 }
 
 function A_FirePlasma(player, psp) {
     player.ammo[weaponinfo[player.readyweapon].ammo]--
     P_SetPsprite(player, ps_flash,
         weaponinfo[player.readyweapon].flashstate + (P_Random() & 1))
-    PM.P_SpawnPlayerMissile(player.mo, I.MT.MT_PLASMA)
+    PM.P_SpawnPlayerMissile(player.mo, I.MT.MT_PLASMA, P_PlayerAimAngle(player))
 }
 
 let bulletslope = 0
 
-function P_BulletSlope(mo) {
-    let an = mo.angle >>> 0
+// baseAngle defaults to mo.angle (demos / kbd); p_pspr passes the free-aim
+// angle so the autoaim slope is searched along the cursor direction.
+function P_BulletSlope(mo, baseAngle) {
+    let an = (baseAngle === undefined ? mo.angle : baseAngle) >>> 0
+    const base = an
     bulletslope = PMap.P_AimLineAttack(mo, an, 16 * 64 * FRACUNIT)
     if (!PMap.getLinetarget()) {
-        an = (an + (1 << 26)) >>> 0
+        an = (base + (1 << 26)) >>> 0
         bulletslope = PMap.P_AimLineAttack(mo, an, 16 * 64 * FRACUNIT)
         if (!PMap.getLinetarget()) {
-            an = (an - (2 << 26)) >>> 0
+            an = (base - (1 << 26)) >>> 0
             bulletslope = PMap.P_AimLineAttack(mo, an, 16 * 64 * FRACUNIT)
         }
     }
 }
 
-function P_GunShot(mo, accurate) {
+function P_GunShot(mo, accurate, baseAngle) {
     const damage = 5 * (P_Random() % 3 + 1)
-    let angle = mo.angle
+    let angle = (baseAngle === undefined ? mo.angle : baseAngle)
     if (!accurate) angle = (angle + ((P_Random() - P_Random()) << 18)) | 0
     PMap.P_LineAttack(mo, angle >>> 0, DD.MISSILERANGE, bulletslope, damage)
 }
@@ -321,8 +331,9 @@ function A_FirePistol(player, psp) {
     player.ammo[weaponinfo[player.readyweapon].ammo]--
     P_SetPsprite(player, ps_flash,
         weaponinfo[player.readyweapon].flashstate)
-    P_BulletSlope(player.mo)
-    P_GunShot(player.mo, !player.refire)
+    const ba = P_PlayerAimAngle(player)
+    P_BulletSlope(player.mo, ba)
+    P_GunShot(player.mo, !player.refire, ba)
 }
 
 function A_FireShotgun(player, psp) {
@@ -331,9 +342,10 @@ function A_FireShotgun(player, psp) {
     player.ammo[weaponinfo[player.readyweapon].ammo]--
     P_SetPsprite(player, ps_flash,
         weaponinfo[player.readyweapon].flashstate)
-    P_BulletSlope(player.mo)
+    const ba = P_PlayerAimAngle(player)
+    P_BulletSlope(player.mo, ba)
     for (let i = 0; i < 7; i++)
-        P_GunShot(player.mo, false)
+        P_GunShot(player.mo, false, ba)
 }
 
 function A_FireShotgun2(player, psp) {
@@ -342,10 +354,11 @@ function A_FireShotgun2(player, psp) {
     player.ammo[weaponinfo[player.readyweapon].ammo] -= 2
     P_SetPsprite(player, ps_flash,
         weaponinfo[player.readyweapon].flashstate)
-    P_BulletSlope(player.mo)
+    const ba = P_PlayerAimAngle(player)
+    P_BulletSlope(player.mo, ba)
     for (let i = 0; i < 20; i++) {
         const damage = 5 * (P_Random() % 3 + 1)
-        let angle = player.mo.angle
+        let angle = ba
         angle = (angle + ((P_Random() - P_Random()) << 19)) | 0
         PMap.P_LineAttack(player.mo, angle >>> 0, DD.MISSILERANGE,
             (bulletslope + ((P_Random() - P_Random()) << 5)) | 0, damage)
@@ -361,8 +374,9 @@ function A_FireCGun(player, psp) {
     P_SetPsprite(player, ps_flash,
         weaponinfo[player.readyweapon].flashstate +
         psp.state - I.S.S_CHAIN1)
-    P_BulletSlope(player.mo)
-    P_GunShot(player.mo, !player.refire)
+    const ba = P_PlayerAimAngle(player)
+    P_BulletSlope(player.mo, ba)
+    P_GunShot(player.mo, !player.refire, ba)
 }
 
 function A_Light0(player, psp) { player.extralight = 0 }

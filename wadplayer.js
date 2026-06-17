@@ -30,6 +30,25 @@ _G.DOOM = {}
 _G.DOOM.SCREENWIDTH = 320
 _G.DOOM.SCREENHEIGHT = 200
 
+// Mouse control tuning (TSVM extension -- tweak live via _G.DOOM.MOUSE).
+// The screen splits into a centre dead-zone 'a' (free aim, no camera turn) and
+// left/right wings 'b' (free aim + camera turn). The weapon and bullets always
+// follow the cursor; only the wings steer the view.
+//   ENABLE       master on/off switch
+//   CENTREWIDTH  fraction of the screen width that is the no-turn zone 'a'
+//   MAXTURNSPEED angleturn units at the very screen edge (kbd fast turn = 1280,
+//                so >1280 makes the wing edge turn faster than the keyboard)
+//   TURNGAMMA    wing ramp exponent: turn = MAXTURNSPEED * t^GAMMA, t in 0..1
+//                from the inner edge of 'b' to the screen edge (1.0 = linear)
+//   HANDFOLLOW   how far the weapon tracks the cursor (1.0 = exact follow)
+_G.DOOM.MOUSE = {
+    ENABLE: true,
+    CENTREWIDTH: 0.45,
+    MAXTURNSPEED: 1800,
+    TURNGAMMA: 2.5,
+    HANDFOLLOW: 0.707,
+}
+
 const DIR = _G.shell.getFileDir()
 
 // ---------------------------------------------------------------------------
