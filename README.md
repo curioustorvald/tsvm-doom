@@ -57,22 +57,49 @@ doom view [E M]            noclip fly-through (renderer smoke test)
 
 ## Controls (defaults)
 
-| Action            | Key            |
-|-------------------|----------------|
-| Move forward/back | ↑ / ↓ (or W/S) |
-| Turn left/right   | ← / →          |
-| Strafe left/right | A / D          |
-| Strafe modifier   | Alt            |
-| Run               | Shift          |
-| Fire              | Ctrl           |
-| Use / open        | Space          |
-| Weapons           | 1 … 7          |
-| Menu              | Esc            |
-| Automap           | Tab            |
-| Save / Load       | F2 / F3        |
-| Quicksave / load  | F6 / F9        |
+| Action            | Key                  |
+|-------------------|----------------------|
+| Move forward/back | ↑ / ↓ (or W/S)       |
+| Turn left/right   | ← / →                |
+| Aim & turn        | Mouse (see below)    |
+| Strafe left/right | A / D                |
+| Strafe modifier   | Alt                  |
+| Run               | Shift                |
+| Fire              | Ctrl (or left mouse) |
+| Use / open        | Space (or right mouse) |
+| Weapons           | 1 … 7                |
+| Menu              | Esc                  |
+| Automap           | Tab                  |
+| Save / Load       | F2 / F3              |
+| Quicksave / load  | F6 / F9              |
 
 All keys are remappable in `doomrc` (see below).
+
+### Mouse
+
+The mouse both **aims** and **steers**. The screen is split vertically into a
+centre **dead-zone** and two **wings**:
+
+- **Centre dead-zone** — the camera stays put while the weapon and your shots
+  track the cursor (free aim inside the current view).
+- **Left / right wings** — the same free aim, *plus* the camera turns toward
+  that side. The turn speeds up the closer the cursor is to the screen edge; at
+  the very edge it can spin faster than the keyboard turn.
+
+There is no pointer capture, so steering is *positional* (it follows where the
+cursor sits, not how it moves): rest the cursor in the dead-zone to hold your
+heading, push it into a wing to turn. **Left button fires, right button uses.**
+
+Tuning lives in the `_G.DOOM.MOUSE` runtime object — not `doomrc` — so it can be
+changed live:
+
+| Field          | Default | Meaning |
+|----------------|---------|---------|
+| `ENABLE`       | `true`  | master on/off (`false` = keyboard-only) |
+| `CENTREWIDTH`  | `0.45`   | dead-zone width as a fraction of the screen (`0.5` = middle half) |
+| `MAXTURNSPEED` | `1800`  | turn rate at the very screen edge (the keyboard fast turn is `1280`) |
+| `TURNGAMMA`    | `2.5`   | wing ramp curve: `turn = MAXTURNSPEED × t^GAMMA`, `t` = 0 at the dead-zone, 1 at the edge (`1.0` = linear) |
+| `HANDFOLLOW`   | `0.707`   | how far the weapon slides toward the cursor (`1.0` = exact) |
 
 ## Configuration — `doomrc`
 
