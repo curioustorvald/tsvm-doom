@@ -29,6 +29,7 @@ const [FB_W, FB_H] = graphics.getPixelDimension()
 _G.DOOM = {}
 _G.DOOM.SCREENWIDTH = 320
 _G.DOOM.SCREENHEIGHT = 200
+_G.DOOM.SCREENGAMMA = 0.72
 
 // Mouse control tuning (TSVM extension -- tweak live via _G.DOOM.MOUSE).
 // The screen splits into a centre dead-zone 'a' (free aim, no camera turn) and

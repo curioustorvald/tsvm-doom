@@ -76,9 +76,12 @@ function I_RegisterPlaypal(playpal) {
     for (let p = 0; p < count; p++) {
         const img = new Uint8Array(512)
         for (let i = 0; i < 256; i++) {
-            const r = playpal[p * 768 + i * 3] >> 4
-            const g = playpal[p * 768 + i * 3 + 1] >> 4
-            const b = playpal[p * 768 + i * 3 + 2] >> 4
+            const rF = playpal[p * 768 + i * 3] / 255.0
+            const gF = playpal[p * 768 + i * 3 + 1] / 255.0
+            const bF = playpal[p * 768 + i * 3 + 2] / 255.0
+            let r = Math.round(Math.pow(rF, _G.DOOM.SCREENGAMMA) * 15)|0
+            let g = Math.round(Math.pow(gF, _G.DOOM.SCREENGAMMA) * 15)|0
+            let b = Math.round(Math.pow(bF, _G.DOOM.SCREENGAMMA) * 15)|0
             img[2 * i] = (r << 4) | g
             img[2 * i + 1] = (b << 4) | 0x0F     // alpha 15 = opaque
         }
