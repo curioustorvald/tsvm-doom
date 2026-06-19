@@ -61,10 +61,11 @@ function I_InitGraphics() {
     out.fill(0)
     sys.pokeBytes(FB_ADDR, out, out.length)
     // DOOM reads the raw keyboard snapshot (-41..-48) directly, bypassing the
-    // VT input ring. Under vtmgr, grab so the dispatcher stops piling cooked
-    // chars into our pane's ring (they'd flood the shell on exit). con gains
-    // this method only inside a VT pane; the bare host con has no such field.
-    if (typeof con.grabRawKeyboard === "function") con.grabRawKeyboard()
+    // cooked VT input ring, and paints the whole screen — i.e. it is a fullscreen
+    // app. One declaration covers everything: under vtmgr it grabs so the
+    // dispatcher stops piling cooked chars into our pane's ring (they'd flood the
+    // shell on exit); on bare metal it is a harmless no-op. Always present.
+    con.setFullscreen(true)
 }
 
 // playpal: the PLAYPAL lump (14 x 768 bytes of 8-bit RGB triplets).
@@ -113,7 +114,7 @@ function I_FinishUpdate() {
 }
 
 function I_ShutdownGraphics() {
-    if (typeof con.releaseRawKeyboard === "function") con.releaseRawKeyboard()
+    con.setFullscreen(false)
     I_RestoreDefaultPalette()                  // reliable on every core build
     out.fill(255)                              // 255 = background-colour index
     sys.pokeBytes(FB_ADDR, out, out.length)

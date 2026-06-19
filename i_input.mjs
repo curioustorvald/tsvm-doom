@@ -63,14 +63,12 @@ function I_PollKeys() {
     prevHeld.set(held)
     held.fill(0)
 
-    // Under vtmgr, only sample the physical keyboard while we're the active
-    // console; a backgrounded game must not respond to the foreground
-    // console's typing. VT_NUM / VT_CTRL_ADDR are published by the pane
-    // bootstrap (active_vt lives at CTRL+0); both are undefined outside a VT,
-    // so the bare-metal path always samples. Leaving `held` all-zero when
-    // inactive lets the release logic below clear everything cleanly.
-    const inVT = typeof globalThis.VT_NUM !== "undefined"
-    const active = !inVT || sys.peek(globalThis.VT_CTRL_ADDR) === globalThis.VT_NUM
+    // Only sample the physical keyboard while we own it (we are the foreground
+    // console); a backgrounded game must not respond to the foreground console's
+    // typing. con.isActiveConsole() is a first-class check: always true on bare
+    // metal, and true under vtmgr only while this pane is the active VT. Leaving
+    // `held` all-zero when inactive lets the release logic below clear cleanly.
+    const active = con.isActiveConsole()
     if (active) {
         let n = 0
         for (let a = -41; a >= -48; a--) {
